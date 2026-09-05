@@ -40,10 +40,18 @@ jobs:
         run: npx tsc --noEmit
 
       # NEXT_PUBLIC_* values are inlined at build time, so they must be present
-      # here, not at runtime. The Supabase pair is safe to expose: the anon key
-      # is designed to be public and Row Level Security is what actually
-      # protects the data. Add them under
-      # Settings -> Secrets and variables -> Actions -> Variables.
+      # here, not at runtime.
+      #
+      # The Supabase pair is committed on purpose. A publishable key is meant to
+      # ship inside the browser bundle — it is readable in the deployed
+      # JavaScript no matter where the build reads it from, so hiding it here
+      # would buy nothing. Row Level Security is the actual boundary: the
+      # database refuses any row whose user_id isn't the caller's, verified by
+      # an anonymous insert being rejected with 42501. The secret/service_role
+      # key bypasses RLS and must never appear in this repo.
+      #
+      # Repo variables of the same name override these, for pointing a build at
+      # a different Supabase project without editing the workflow.
       #
       # BASE_PATH must match where Pages actually serves the site, or every
       # asset 404s. The custom domain is configured, so the site sits at the
@@ -54,8 +62,8 @@ jobs:
       # to "/mealmate" and re-run this workflow.
       - name: Build static export
         env:
-          NEXT_PUBLIC_SUPABASE_URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ vars.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL || 'https://nstgkgholkcltocmpnkv.supabase.co' }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ vars.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_S0TYS1uke_TpVU6PUSOPmA_xkkHYlKH' }}
           NEXT_PUBLIC_BASE_PATH: ${{ vars.SITE_BASE_PATH || '/' }}
         run: npm run build
 

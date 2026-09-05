@@ -115,10 +115,12 @@ The workflow in `.github/workflows/deploy.yml` builds the static export and
 publishes `out/` on every push to `main`.
 
 1. **GitHub → repo Settings → Pages:** set *Source* to **GitHub Actions**.
-2. **GitHub → Settings → Secrets and variables → Actions → Variables** (not
-   Secrets — both values are public by design): add
-   `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`. Without them
-   the site still deploys, in guest mode.
+2. **Supabase credentials** are committed in the workflow. A publishable key
+   ships inside the browser bundle by design, so hiding it from the repo would
+   buy nothing — Row Level Security is the real boundary. To point a build at a
+   different project, add repo variables `NEXT_PUBLIC_SUPABASE_URL` and
+   `NEXT_PUBLIC_SUPABASE_ANON_KEY`; they override the committed defaults.
+   The `service_role` / `sb_secret_` key bypasses RLS and must never be added.
 
 ### Where the site is mounted
 
