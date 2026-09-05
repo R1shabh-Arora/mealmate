@@ -28,9 +28,15 @@ import { z } from "npm:zod@4.5.4";
 
 /* ------------------------------------------------------------------ config */
 
-const MODEL = Deno.env.get("AI_KITCHEN_MODEL") ?? "claude-opus-5";
-/** Recipe suggestion is a bounded, well-specified task; it doesn't need deep
- *  reasoning. Raise to "high" if answers feel shallow. */
+// Sonnet by default: recipe suggestion is a bounded, well-specified task that
+// doesn't need Opus-level reasoning, and Sonnet is a fifth of the cost. If the
+// primary model is rate-limited or overloaded, the request is retried once
+// against the fallback -- the lightest model in the current lineup -- rather
+// than failing outright. Neither choice is hardcoded: both are overridable per
+// deployment without touching this file.
+const PRIMARY_MODEL = Deno.env.get("AI_KITCHEN_MODEL") ?? "claude-sonnet-5";
+const FALLBACK_MODEL = Deno.env.get("AI_KITCHEN_FALLBACK_MODEL") ?? "claude-haiku-4-5";
+/** Applied to the primary model only -- Haiku errors if `effort` is set at all. */
 const EFFORT = Deno.env.get("AI_KITCHEN_EFFORT") ?? "medium";
 const DAILY_CALL_LIMIT = Number(Deno.env.get("AI_KITCHEN_DAILY_LIMIT") ?? "40");
 
@@ -237,24 +243,59 @@ Deno.serve(async (request: Request) => {
 
   // 4. Ask Claude for structured output. `parse` validates against the schema,
   //    so a malformed answer fails here rather than in the user's browser.
-  try {
-    const anthropic = new Anthropic({ apiKey });
-    const message = await anthropic.messages.parse({
-      model: MODEL,
+  const anthropic = new Anthropic({ apiKey });
+  const sys = systemPrompt(req.preferences);
+  const usr = userPrompt(req);
+
+  /** True for the errors worth retrying on a different model: the provider is
+   *  rate-limiting or temporarily overloaded, not rejecting the request itself. */
+  const isRetryable = (e: unknown): boolean => {
+    if (e instanceof Anthropic.RateLimitError) return true;
+    if (e instanceof Anthropic.APIStatusError) return e.status === 429 || e.status >= 500;
+    return false;
+  };
+
+  const callModel = (model: string) =>
+    anthropic.messages.parse({
+      model,
       max_tokens: 16000,
       output_config: {
-        effort: EFFORT as "low" | "medium" | "high",
+        // Haiku rejects `effort` outright, so it's only ever sent to the
+        // primary model. Nothing here assumes which model that is.
+        ...(model !== FALLBACK_MODEL ? { effort: EFFORT as "low" | "medium" | "high" } : {}),
         format: zodOutputFormat(ResponseSchema),
       },
-      system: systemPrompt(req.preferences),
-      messages: [{ role: "user", content: userPrompt(req) }],
+      system: sys,
+      messages: [{ role: "user", content: usr }],
     });
+
+  try {
+    let usedFallback = false;
+    let message;
+    try {
+      message = await callModel(PRIMARY_MODEL);
+    } catch (primaryError) {
+      if (PRIMARY_MODEL === FALLBACK_MODEL || !isRetryable(primaryError)) throw primaryError;
+      console.warn(
+        `primary model ${PRIMARY_MODEL} unavailable, retrying with ${FALLBACK_MODEL}`,
+        primaryError
+      );
+      usedFallback = true;
+      message = await callModel(FALLBACK_MODEL);
+    }
 
     if (message.stop_reason === "refusal") {
       return json({ error: "That request was declined. Try rewording it." }, 422);
     }
     if (!message.parsed_output) {
       return json({ error: "The model's answer couldn't be read. Try again." }, 502);
+    }
+    if (usedFallback) {
+      // Visible in the UI's warnings list, not just the function log — the
+      // cook should know an answer came from the lighter backup model.
+      message.parsed_output.warnings.unshift(
+        "The main AI was busy, so this answer came from a faster backup model."
+      );
     }
     return json(message.parsed_output);
   } catch (e) {

@@ -213,11 +213,17 @@ browser --(user's JWT)--> supabase/functions/ai-kitchen --> Anthropic API
    supabase functions deploy ai-kitchen
    ```
 
-Optional function secrets: `AI_KITCHEN_MODEL` (default `claude-opus-5` — set
-`claude-haiku-4-5` to trade quality for cost), `AI_KITCHEN_EFFORT` (`low` /
-`medium` / `high`, default `medium`), `AI_KITCHEN_DAILY_LIMIT` (default 40
-calls per user per day), and `AI_KITCHEN_ALLOW_ORIGIN` to restrict CORS to
-`https://mealmate.rishabh.uk`.
+Runs on **Sonnet** by default, with an automatic step-down to **Haiku** — the
+lightest current model — if Sonnet is rate-limited or overloaded, so a busy
+moment degrades to a faster answer instead of failing outright. When that
+happens the response itself says so ("answered by a faster backup model").
+
+Optional function secrets: `AI_KITCHEN_MODEL` (default `claude-sonnet-5`),
+`AI_KITCHEN_FALLBACK_MODEL` (default `claude-haiku-4-5` — the model retried on
+a 429 or 5xx from the primary), `AI_KITCHEN_EFFORT` (`low` / `medium` / `high`,
+applied to the primary model only — Haiku rejects it, default `medium`),
+`AI_KITCHEN_DAILY_LIMIT` (default 40 calls per user per day), and
+`AI_KITCHEN_ALLOW_ORIGIN` to restrict CORS to `https://mealmate.rishabh.uk`.
 
 **Adding a capability** means adding a value to the `task` enum in
 [`src/lib/ai/schemas.ts`](src/lib/ai/schemas.ts) and a brief to `TASK_BRIEF` in
