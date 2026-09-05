@@ -19,6 +19,60 @@ const LOCATIONS: Array<{ id: StorageLocation | "all"; label: string; emoji: stri
   { id: "freezer", label: "Freezer", emoji: "❄️" },
 ];
 
+/** Relative shortcuts, for when you know "about a week" but not the date. */
+const QUICK_EXPIRY: Array<{ label: string; days: number }> = [
+  { label: "Today", days: 0 },
+  { label: "+3 days", days: 3 },
+  { label: "+1 week", days: 7 },
+  { label: "+1 month", days: 30 },
+];
+
+/**
+ * Expiry as a real date, with relative shortcuts.
+ *
+ * The date is what the model has always stored; asking for "expires in N days"
+ * just made the user do the arithmetic that's already printed on the packet.
+ * Past dates are allowed on purpose — something already out of date is exactly
+ * what Use It Up needs to know about.
+ *
+ * Module scope, not nested in the page: a component defined inside a render is
+ * a new type on every keystroke, and React would remount the input and drop
+ * focus.
+ */
+function ExpiryField({
+  id,
+  value,
+  onChange,
+}: {
+  id: string;
+  /** ISO yyyy-mm-dd, or "" for no expiry tracked. */
+  value: string;
+  onChange: (iso: string) => void;
+}) {
+  const expiry = value ? formatExpiry(value) : null;
+  return (
+    <div>
+      <Label htmlFor={id}>Expiry date</Label>
+      <Input id={id} type="date" value={value} onChange={(e) => onChange(e.target.value)} />
+      <div className="mt-2 flex flex-wrap gap-1.5">
+        {QUICK_EXPIRY.map((q) => (
+          <Chip key={q.label} className="px-2.5 py-1 text-xs" onClick={() => onChange(isoDateInDays(q.days))}>
+            {q.label}
+          </Chip>
+        ))}
+        {value && (
+          <Chip className="px-2.5 py-1 text-xs" onClick={() => onChange("")}>
+            ✕ No date
+          </Chip>
+        )}
+      </div>
+      <p className={cn("mt-1.5 text-xs", expiry?.urgency === "expired" ? "text-terra" : "text-ink-soft")}>
+        {expiry ? expiry.label : "No expiry tracked — this item is never flagged as running out."}
+      </p>
+    </div>
+  );
+}
+
 function IngredientsInner() {
   const searchParams = useSearchParams();
   const welcome = searchParams.get("welcome") === "1";
@@ -34,8 +88,12 @@ function IngredientsInner() {
   const [qty, setQty] = useState("");
   const [unit, setUnit] = useState<Unit>("g");
   const [location, setLocation] = useState<StorageLocation>("fridge");
-  const [expiryDays, setExpiryDays] = useState("7");
+  const [expiryDate, setExpiryDate] = useState(() => isoDateInDays(7));
   const [formError, setFormError] = useState<string | null>(null);
+
+  // Changing the expiry of something already in the kitchen.
+  const [expiryEditId, setExpiryEditId] = useState<string | null>(null);
+  const [expiryDraft, setExpiryDraft] = useState("");
 
   const { pantry, preferences } = state;
   const useItUp = useMemo(() => suggestUseItUpMeals(pantry, preferences), [pantry, preferences]);
@@ -71,7 +129,6 @@ function IngredientsInner() {
       setFormError("Pick an ingredient or type a custom name.");
       return;
     }
-    const days = Number(expiryDays);
     if (selectedId) {
       const ing = getIngredient(selectedId);
       addPantryItem({
@@ -81,7 +138,7 @@ function IngredientsInner() {
         qty: amount,
         unit: ing.unit,
         location,
-        expiryDate: isoDateInDays(Number.isFinite(days) && days > 0 ? days : ing.shelfLifeDays),
+        expiryDate: expiryDate || undefined,
       });
     } else {
       addPantryItem({
@@ -90,15 +147,27 @@ function IngredientsInner() {
         qty: amount,
         unit,
         location,
-        expiryDate: Number.isFinite(days) && days > 0 ? isoDateInDays(days) : undefined,
+        expiryDate: expiryDate || undefined,
       });
     }
     setSearch("");
     setSelectedId(null);
     setCustomName("");
     setQty("");
+    setExpiryDate(isoDateInDays(7));
     setFormError(null);
     setAddOpen(false);
+  };
+
+  const openExpiryEditor = (itemId: string, current?: string) => {
+    setExpiryDraft(current ?? "");
+    setExpiryEditId(itemId);
+  };
+
+  const saveExpiry = () => {
+    if (!expiryEditId) return;
+    updatePantryItem(expiryEditId, { expiryDate: expiryDraft || undefined });
+    setExpiryEditId(null);
   };
 
   return (
@@ -182,12 +251,25 @@ function IngredientsInner() {
                   <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-ink-soft">
                     <span className="font-semibold tabular-nums">{formatQty(item.qty, item.unit)}</span>
                     <span className="capitalize">{item.location}</span>
-                    {expiry && (
-                      <Badge variant={expiry.urgency === "ok" ? "neutral" : expiry.urgency === "soon" ? "amber" : "terra"}>
-                        {expiry.urgency !== "ok" && <span aria-hidden="true">⏳</span>}
-                        {expiry.label}
-                      </Badge>
-                    )}
+                    {/* The date is the thing most likely to be wrong or missing,
+                        so it's editable in place rather than delete-and-re-add. */}
+                    <button
+                      type="button"
+                      onClick={() => openExpiryEditor(item.id, item.expiryDate)}
+                      aria-label={
+                        expiry ? `Change expiry date for ${item.name}` : `Set an expiry date for ${item.name}`
+                      }
+                      className="rounded-full transition hover:opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-basil-bright"
+                    >
+                      {expiry ? (
+                        <Badge variant={expiry.urgency === "ok" ? "neutral" : expiry.urgency === "soon" ? "amber" : "terra"}>
+                          {expiry.urgency !== "ok" && <span aria-hidden="true">⏳</span>}
+                          {expiry.label}
+                        </Badge>
+                      ) : (
+                        <Badge variant="neutral">＋ Add date</Badge>
+                      )}
+                    </button>
                   </div>
                 </div>
                 <div className="flex items-center gap-1">
@@ -293,7 +375,7 @@ function IngredientsInner() {
                       setSelectedId(ing.id);
                       setUnit(ing.unit);
                       setLocation(ing.defaultLocation);
-                      setExpiryDays(String(Math.min(ing.shelfLifeDays, 365)));
+                      setExpiryDate(isoDateInDays(Math.min(ing.shelfLifeDays, 365)));
                       setQty(String(ing.packSize));
                     }}
                   >
@@ -330,17 +412,39 @@ function IngredientsInner() {
                 <option value="freezer">Freezer</option>
               </Select>
             </div>
-            <div>
-              <Label htmlFor="ing-expiry">Expires in (days)</Label>
-              <Input id="ing-expiry" type="number" inputMode="numeric" min="1" value={expiryDays} onChange={(e) => setExpiryDays(e.target.value)} />
-            </div>
           </div>
+          <ExpiryField id="ing-expiry" value={expiryDate} onChange={setExpiryDate} />
           {formError && (
             <p role="alert" className="rounded-xl bg-terra-soft px-3 py-2 text-sm font-semibold text-terra">
               {formError}
             </p>
           )}
           <Button type="submit">Add to my kitchen</Button>
+        </form>
+      </Modal>
+
+      {/* Change the expiry of something already in the kitchen */}
+      <Modal
+        open={expiryEditId !== null}
+        onClose={() => setExpiryEditId(null)}
+        title={pantry.find((p) => p.id === expiryEditId)?.name ?? "Expiry date"}
+      >
+        <form
+          className="grid gap-4"
+          onSubmit={(e) => {
+            e.preventDefault();
+            saveExpiry();
+          }}
+        >
+          <ExpiryField id="edit-expiry" value={expiryDraft} onChange={setExpiryDraft} />
+          <div className="flex gap-2">
+            <Button type="submit" className="flex-1">
+              Save
+            </Button>
+            <Button type="button" variant="outline" onClick={() => setExpiryEditId(null)}>
+              Cancel
+            </Button>
+          </div>
         </form>
       </Modal>
 
