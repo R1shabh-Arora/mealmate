@@ -36,7 +36,7 @@ const DAILY_CALL_LIMIT = Number(Deno.env.get("AI_KITCHEN_DAILY_LIMIT") ?? "40");
 
 const CORS = {
   "Access-Control-Allow-Origin": Deno.env.get("AI_KITCHEN_ALLOW_ORIGIN") ?? "*",
-  "Access-Control-Allow-Headers": "authorization, content-type",
+  "Access-Control-Allow-Headers": "authorization, content-type, apikey, x-client-info",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
