@@ -269,19 +269,28 @@ export function Modal({
 }) {
   const ref = useRef<HTMLDivElement>(null);
 
+  // Read through a ref so `onClose` isn't a dependency below. Callers pass an
+  // inline arrow, so its identity changes on every render of the parent.
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") onCloseRef.current();
     };
     document.addEventListener("keydown", onKey);
     document.body.style.overflow = "hidden";
+    // Move focus into the dialog once, as it opens. This effect must depend on
+    // `open` alone: with `onClose` in the deps it re-ran on every keystroke in
+    // a modal form — typing a letter re-rendered the parent, which produced a
+    // new onClose, which pulled focus out of the field being typed into.
     ref.current?.focus();
     return () => {
       document.removeEventListener("keydown", onKey);
       document.body.style.overflow = "";
     };
-  }, [open, onClose]);
+  }, [open]);
 
   if (!open) return null;
 
