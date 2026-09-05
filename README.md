@@ -3,8 +3,9 @@
 A personal AI meal-planning and meal-prep assistant for UK kitchens. Go from
 **what I have → what I should eat → what to buy → what it costs → how to prep → how to use leftovers.**
 
-Live at **https://mealmate.rishabh.uk** — a static site on GitHub Pages, with
-Google sign-in and per-account cloud storage on Supabase.
+Live at **https://r1shabh-arora.github.io/mealmate/** — a static site on GitHub
+Pages, with Google sign-in and per-account cloud storage on Supabase.
+(`mealmate.rishabh.uk` is the intended home; see *Moving to the custom domain*.)
 
 Built for the 2-person, vegetarian, high-protein, budget-conscious household —
 but every one of those assumptions is configurable.
@@ -112,19 +113,38 @@ clearly labelled as estimates in the UI. A live grocery API can replace the
 ## Deployment: GitHub Pages + Cloudflare
 
 The workflow in `.github/workflows/deploy.yml` builds the static export and
-publishes `out/` on every push to `main`. `public/CNAME` tells Pages the site
-is `mealmate.rishabh.uk`.
+publishes `out/` on every push to `main`.
 
 1. **GitHub → repo Settings → Pages:** set *Source* to **GitHub Actions**.
 2. **GitHub → Settings → Secrets and variables → Actions → Variables** (not
    Secrets — both values are public by design): add
    `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`. Without them
    the site still deploys, in guest mode.
-3. **Cloudflare DNS for rishabh.uk:** add a `CNAME` record, name `mealmate`,
+
+### Where the site is mounted
+
+GitHub serves a project repo under `r1shabh-arora.github.io/mealmate/`, but a
+custom domain serves the same files from the root. A static export bakes that
+prefix into every asset URL, so **the build has to know which one it is** — get
+it wrong and the HTML loads while every stylesheet and script 404s.
+
+`NEXT_PUBLIC_BASE_PATH` is that switch, defaulting to `/mealmate`.
+
+### Moving to the custom domain
+
+1. **Cloudflare DNS for rishabh.uk:** add a `CNAME` record, name `mealmate`,
    target `r1shabh-arora.github.io`, proxy status **DNS only** (grey cloud) so
-   GitHub can issue the certificate. Then in repo Settings → Pages, confirm the
-   custom domain shows `mealmate.rishabh.uk` and tick *Enforce HTTPS* once the
-   check passes.
+   GitHub can issue the certificate.
+2. **Repo Settings → Pages → Custom domain:** enter `mealmate.rishabh.uk` and
+   wait for the DNS check to pass, then tick *Enforce HTTPS*. On the Actions
+   deploy path this setting — not a `CNAME` file in the repo — is what
+   configures the domain.
+3. **Settings → Secrets and variables → Actions → Variables:** add
+   `SITE_BASE_PATH` with the value `/` (the sentinel for "domain root"; an
+   Actions variable can't be set to an empty string), then re-run the workflow.
+4. Update the Supabase redirect URLs below to the new origin.
+
+Skip step 3 and the site will keep looking for its assets under `/mealmate/`.
 
 ## Accounts & cloud sync (Supabase + Google)
 

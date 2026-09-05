@@ -2,6 +2,7 @@
 
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import type { Session, User } from "@supabase/supabase-js";
+import { absoluteUrl, withBasePath } from "./base-path";
 import { LocalStateStore } from "./persistence";
 import { clearStoredSession, getSupabaseBrowserClient } from "./supabase/client";
 import { isSupabaseConfigured } from "./supabase/config";
@@ -35,7 +36,7 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 function forceLocalSignOut() {
   clearStoredSession();
   LocalStateStore.clear();
-  window.location.assign("/");
+  window.location.assign(withBasePath("/"));
 }
 
 function toAuthUser(user: User): AuthUser {
@@ -88,7 +89,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setError(null);
     const { error: signInError } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `${window.location.origin}/auth/callback/` },
+      options: { redirectTo: absoluteUrl("/auth/callback/") },
     });
     if (signInError) setError(signInError.message);
   }, []);

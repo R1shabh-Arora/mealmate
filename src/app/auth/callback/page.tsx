@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Button, Card } from "@/components/ui";
+import { withBasePath } from "@/lib/base-path";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 
 /**
@@ -16,7 +17,7 @@ export default function AuthCallbackPage() {
   useEffect(() => {
     const supabase = getSupabaseBrowserClient();
     if (!supabase) {
-      window.location.replace("/");
+      window.location.replace(withBasePath("/"));
       return;
     }
 
@@ -33,7 +34,7 @@ export default function AuthCallbackPage() {
       if (done) return;
       done = true;
       // replace() so Back doesn't return to this throwaway page.
-      window.location.replace("/dashboard/");
+      window.location.replace(withBasePath("/dashboard/"));
     };
 
     const {
