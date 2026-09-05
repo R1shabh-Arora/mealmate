@@ -47,7 +47,12 @@ function HeaderAccount({ compact }: { compact?: boolean }) {
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const bare = pathname === "/" || pathname.startsWith("/onboarding");
+  // /auth/* is a transient stop mid-sign-in: it brings its own full-height
+  // <main>, so wrapping it here would nest one landmark inside another, and
+  // offering the nav invites a click away while the code is still being
+  // exchanged.
+  const bare =
+    pathname === "/" || pathname.startsWith("/onboarding") || pathname.startsWith("/auth");
   const [moreOpen, setMoreOpen] = useState(false);
   const { status } = useAuth();
 
