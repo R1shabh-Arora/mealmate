@@ -39,11 +39,6 @@ export default function LandingPage() {
       <header className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-6 py-5">
         <Logo />
         <div className="flex items-center gap-3">
-          {hasKitchen && !signedIn && (
-            <Link href="/dashboard" className="text-sm font-semibold text-basil-bright hover:underline">
-              Open my dashboard →
-            </Link>
-          )}
           {signedIn ? <AccountMenu /> : <SignInButton size="sm" label="Sign in" />}
         </div>
       </header>
@@ -60,29 +55,34 @@ export default function LandingPage() {
           keeps you under budget, and hands you a batch-prep schedule.
         </p>
 
+        {/* Every route past this page needs an account, so a signed-out
+            visitor is offered the one thing that works. Showing the demo or
+            onboarding here would just walk them into the sign-in wall. */}
         <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-          {signedIn && hasKitchen ? (
+          {!signedIn ? (
+            status === "disabled" ? (
+              <p className="rounded-xl bg-terra-soft px-4 py-2.5 text-sm font-semibold text-terra">
+                Accounts aren&apos;t configured on this build.
+              </p>
+            ) : (
+              <SignInButton size="lg" />
+            )
+          ) : hasKitchen ? (
             <Link href="/dashboard">
               <Button size="lg">Open my kitchen →</Button>
             </Link>
           ) : (
             <>
-              {status === "signed-out" && <SignInButton size="lg" />}
-              <Button
-                size="lg"
-                variant={status === "signed-out" ? "secondary" : "primary"}
-                onClick={handleDemo}
-                disabled={busy}
-              >
+              <Button size="lg" onClick={handleDemo} disabled={busy}>
                 ✨ Try the demo
               </Button>
+              <Link href="/onboarding">
+                <Button size="lg" variant="outline">
+                  Set up my own week
+                </Button>
+              </Link>
             </>
           )}
-          <Link href="/onboarding">
-            <Button size="lg" variant="outline">
-              Set up my own week
-            </Button>
-          </Link>
         </div>
 
         {authError && (
@@ -93,10 +93,10 @@ export default function LandingPage() {
 
         <p className="mt-3 text-xs text-ink-soft">
           {signedIn
-            ? "Your kitchen is saved to your account and follows you to any device."
-            : status === "signed-out"
-              ? "Guest mode saves to this device only — sign in to keep your kitchen and use it on your phone."
-              : "The demo loads a 2-person vegetarian kitchen and generates a full example week."}
+            ? hasKitchen
+              ? "Your kitchen is saved to your account and follows you to any device."
+              : "The demo loads a 2-person vegetarian kitchen and generates a full example week."
+            : "Your kitchen is private to your account — only you can ever read or change it."}
         </p>
       </section>
 

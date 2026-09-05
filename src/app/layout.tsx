@@ -4,6 +4,7 @@ import "./globals.css";
 import { AuthProvider } from "@/lib/auth";
 import { AppProvider } from "@/lib/store";
 import { AppShell } from "@/components/app-shell";
+import { AuthGate } from "@/components/auth-gate";
 
 const jakarta = Plus_Jakarta_Sans({
   variable: "--font-jakarta",
@@ -35,7 +36,9 @@ export default function RootLayout({
       <body className={`${jakarta.variable} ${fraunces.variable} antialiased`}>
         <AuthProvider>
           <AppProvider>
-            <AppShell>{children}</AppShell>
+            <AuthGate>
+              <AppShell>{children}</AppShell>
+            </AuthGate>
           </AppProvider>
         </AuthProvider>
       </body>
