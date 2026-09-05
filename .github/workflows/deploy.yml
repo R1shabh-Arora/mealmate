@@ -46,15 +46,17 @@ jobs:
       # Settings -> Secrets and variables -> Actions -> Variables.
       #
       # BASE_PATH must match where Pages actually serves the site, or every
-      # asset 404s. GitHub's project URL is r1shabh-arora.github.io/mealmate/,
-      # so "/mealmate" is the default. Once mealmate.rishabh.uk is live the site
-      # sits at the domain root: add a repo variable SITE_BASE_PATH set to "/"
-      # and re-run this workflow.
+      # asset 404s. The custom domain is configured, so the site sits at the
+      # mealmate.rishabh.uk root and needs no prefix ("/" is the sentinel for
+      # that, since an Actions variable can't be an empty string). If the custom
+      # domain is ever removed, Pages reverts to serving
+      # r1shabh-arora.github.io/mealmate/ — set a repo variable SITE_BASE_PATH
+      # to "/mealmate" and re-run this workflow.
       - name: Build static export
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ vars.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-          NEXT_PUBLIC_BASE_PATH: ${{ vars.SITE_BASE_PATH || '/mealmate' }}
+          NEXT_PUBLIC_BASE_PATH: ${{ vars.SITE_BASE_PATH || '/' }}
         run: npm run build
 
       # Stops GitHub Pages' legacy Jekyll pass from dropping Next's _next/ folder.
