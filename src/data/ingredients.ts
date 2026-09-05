@@ -32,6 +32,9 @@ export const INGREDIENTS: CatalogIngredient[] = [
   ing("gram-flour", "Gram flour (besan)", "Grains", "g", 1000, "1kg bag", 2.2, "pantry", 365),
   ing("pitta", "Wholemeal pitta", "Grains", "unit", 6, "pack of 6", 0.65, "pantry", 5),
   ing("naan", "Naan bread", "Grains", "unit", 2, "pack of 2", 0.85, "pantry", 5),
+  // Roti flour. A 1.5kg bag is ~30 rotis, so it works out cheaper per meal than
+  // rice and far cheaper than shop-bought naan, and it keeps for months.
+  ing("atta", "Atta (chapati flour)", "Grains", "g", 1500, "1.5kg bag", 1.75, "pantry", 240),
 
   // Protein
   ing("paneer", "Paneer", "Protein", "g", 226, "226g block", 2.29, "fridge", 14, "tofu"),
@@ -151,6 +154,7 @@ export const AVOIDABLE_IDS = [
 /** Ingredients surfaced as one-tap quick-adds on the pantry page. */
 export const QUICK_ADD_IDS = [
   "rice",
+  "atta",
   "oats",
   "sweet-potato",
   "paneer",

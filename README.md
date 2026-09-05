@@ -67,7 +67,7 @@ npm run build && npm run start   # builds out/ and serves it on :3000
 
 ```
 src/
-  data/          ingredients.ts (UK pricing catalogue) · recipes/ (54 recipes) · demo.ts
+  data/          ingredients.ts (UK pricing catalogue) · recipes/ (58 recipes) · demo.ts
   lib/
     types.ts     domain model
     schemas.ts   zod contracts — every planner backend must emit these shapes
@@ -91,11 +91,11 @@ page is prerendered. Google's OAuth code is exchanged **in the browser** on
 `localStorage`. Security doesn't depend on the web server at all: it's enforced
 by Supabase's Row Level Security against the signed-in user's token.
 
-**Recipes:** 54 egg-free, mushroom-free recipes that never need frying — crisping
-is done in an air fryer or oven, everything else is a hob simmer, a microwave,
-or no cooking. Each recipe declares the kit it needs (`equipment` = all
-required, `equipmentAnyOf` = any one of), and users can list ingredients they
-avoid; those recipes are never planned or suggested.
+**Recipes:** 58 egg-free, mushroom-free recipes that never need frying — rotis
+cook on a dry tawa, crisping is done in an air fryer or oven, and everything
+else is a hob simmer, a microwave, or no cooking. Each recipe declares the kit
+it needs (`equipment` = all required, `equipmentAnyOf` = any one of), and users
+can list ingredients they avoid; those recipes are never planned or suggested.
 
 **Theming:** a warm dark theme. Every colour is a role token in
 `src/app/globals.css`, so re-skinning is a one-file change.
