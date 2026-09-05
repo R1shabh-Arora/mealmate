@@ -182,6 +182,51 @@ Optional — skip it and the site stays in guest mode. About 15 minutes.
 
 4. A *Continue with Google* button appears on the landing page.
 
+## AI Kitchen (optional)
+
+The week planner stays deterministic — it holds a budget and a protein target
+reliably, for free, and nothing here replaces it. The AI layer fills the gaps it
+can't reach: pantry items no recipe mentions, substitutions, invented dishes,
+and plain questions ("what can I do with leftover rice?").
+
+**The key never reaches the browser.** This is a static site, so anything in the
+bundle is public. All model calls go through a Supabase Edge Function that holds
+the key, checks the caller's session, and meters usage. Until it's deployed the
+panel simply reports that it isn't set up; nothing else in the app is affected.
+
+```
+browser --(user's JWT)--> supabase/functions/ai-kitchen --> Anthropic API
+```
+
+1. **Get an API key** at https://console.anthropic.com.
+2. **Run the usage migration** — paste
+   [`supabase/migrations/0002_ai_usage.sql`](supabase/migrations/0002_ai_usage.sql)
+   into the Supabase SQL editor. It adds a per-user daily counter that the
+   browser cannot read or reset.
+3. **Deploy the function:**
+
+   ```bash
+   npm install -g supabase
+   supabase login
+   supabase link --project-ref nstgkgholkcltocmpnkv
+   supabase secrets set ANTHROPIC_API_KEY=sk-ant-...
+   supabase functions deploy ai-kitchen
+   ```
+
+Optional function secrets: `AI_KITCHEN_MODEL` (default `claude-opus-5` — set
+`claude-haiku-4-5` to trade quality for cost), `AI_KITCHEN_EFFORT` (`low` /
+`medium` / `high`, default `medium`), `AI_KITCHEN_DAILY_LIMIT` (default 40
+calls per user per day), and `AI_KITCHEN_ALLOW_ORIGIN` to restrict CORS to
+`https://mealmate.rishabh.uk`.
+
+**Adding a capability** means adding a value to the `task` enum in
+[`src/lib/ai/schemas.ts`](src/lib/ai/schemas.ts) and a brief to `TASK_BRIEF` in
+the function. Every task shares one response shape, so the client needs no new
+parsing and the UI no new plumbing.
+
+Nutrition and cost from the model are estimates and are labelled as such in the
+UI — the same standing rule as the grocery prices.
+
 ## Scripts
 
 ```bash

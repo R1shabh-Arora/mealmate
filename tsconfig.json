@@ -23,5 +23,8 @@
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules"]
+  // supabase/functions runs on Deno, not Node: it uses `npm:` import specifiers
+  // and Deno globals that this config knows nothing about. It is type-checked by
+  // the Supabase CLI at deploy time instead.
+  "exclude": ["node_modules", "supabase/functions"]
 }

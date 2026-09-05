@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Suspense, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { AiKitchenPanel } from "@/components/ai-kitchen";
 import { MealVisual } from "@/components/meal-visual";
 import { Badge, Button, Card, Chip, EmptyState, Input, Label, Modal, SectionTitle, Select, Skeleton } from "@/components/ui";
 import { INGREDIENTS, QUICK_ADD_IDS, getIngredient } from "@/data/ingredients";
@@ -313,6 +314,8 @@ function IngredientsInner() {
       {/* Use it up */}
       <section id="use-it-up">
         <SectionTitle>⏳ Use It Up</SectionTitle>
+        {/* Deterministic first: this section is the local engine matching pantry
+            items to real recipes. The AI panel below picks up what it can't. */}
         {useItUp.length === 0 ? (
           <Card className="p-5 text-sm text-ink-soft">
             Nothing is close to expiry — nice work keeping waste low. 🌱
@@ -349,6 +352,8 @@ function IngredientsInner() {
           </div>
         )}
       </section>
+
+      <AiKitchenPanel />
 
       {/* Add ingredient modal */}
       <Modal open={addOpen} onClose={() => setAddOpen(false)} title="Add ingredient">
