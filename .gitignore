@@ -38,3 +38,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# supabase cli scratch — pooler-url holds a database connection string, so this
+# directory must never be committed. Migrations and functions are tracked; this
+# is per-machine link state.
+supabase/.temp/

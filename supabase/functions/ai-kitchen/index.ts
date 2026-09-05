@@ -17,10 +17,14 @@
  *   supabase functions deploy ai-kitchen
  */
 
-import Anthropic from "npm:@anthropic-ai/sdk@0.71.0";
-import { zodOutputFormat } from "npm:@anthropic-ai/sdk@0.71.0/helpers/zod";
-import { createClient } from "npm:@supabase/supabase-js@2";
-import { z } from "npm:zod@3.25.76";
+// Pinned exactly: Deno resolves `npm:` at deploy time, and a floating range
+// turns a working deploy into a surprise boot failure later. The SDK versions
+// here are the ones that actually expose `messages.parse` + `output_config`;
+// zod and supabase-js match what the site itself resolves.
+import Anthropic from "npm:@anthropic-ai/sdk@0.124.0";
+import { zodOutputFormat } from "npm:@anthropic-ai/sdk@0.124.0/helpers/zod";
+import { createClient } from "npm:@supabase/supabase-js@2.115.0";
+import { z } from "npm:zod@4.5.4";
 
 /* ------------------------------------------------------------------ config */
 
