@@ -1,0 +1,72 @@
+name: Deploy MealMate to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Type check
+        run: npx tsc --noEmit
+
+      # NEXT_PUBLIC_* values are inlined at build time, so they must be present
+      # here, not at runtime. Both are safe to expose: the anon key is designed
+      # to be public and Row Level Security is what actually protects the data.
+      # Add them under Settings -> Secrets and variables -> Actions -> Variables.
+      - name: Build static export
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ vars.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+        run: npm run build
+
+      # Stops GitHub Pages' legacy Jekyll pass from dropping Next's _next/ folder.
+      - name: Disable Jekyll
+        run: touch out/.nojekyll
+
+      # Deep links like /settings/ are real files, but an unknown URL should
+      # still land somewhere sensible rather than on GitHub's 404 page.
+      - name: Add SPA fallback
+        run: cp out/index.html out/404.html
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: out
+
+  deploy:
+    needs: build
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
